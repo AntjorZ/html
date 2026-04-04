@@ -1,0 +1,69 @@
+/* Сброс */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Общие стили */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    text-align: center;
+}
+
+/* Header */
+header {
+    background-color: #222;
+    color: white;
+    padding: 20px;
+}
+
+/* Карточки */
+.card {
+    display: inline-block;
+    width: 250px;
+    background-color: white;
+    padding: 15px;
+    margin: 15px;
+    border: 2px solid #ccc;
+    vertical-align: top;
+}
+
+/* Отличающийся стиль */
+.card-alt {
+    background-color: #ffe4b5;
+    border-color: #ff9900;
+}
+
+/* Изображение */
+.card img {
+    width: 200px;
+    height: auto;
+}
+
+/* Ссылка */
+.card a {
+    display: block;
+    margin: 10px 0;
+    text-decoration: none;
+    color: blue;
+}
+
+/* hover эффект */
+.card a:hover {
+    color: red;
+}
+
+/* Список */
+.card ul {
+    text-align: left;
+    margin-top: 10px;
+}
+
+/* Доп блок */
+.highlight {
+    margin: 20px;
+    padding: 15px;
+    background-color: yellow;
+}
