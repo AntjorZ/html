@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Симулятор информационного пузыря</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #1e293b; }
+
+  /* Welcome */
+  #welcome {
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .welcome-box { max-width: 460px; width: 100%; text-align: center; }
+  .welcome-box h1 { font-size: 24px; font-weight: 800; margin: 12px 0 8px; }
+  .welcome-box p { color: #64748b; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+  .topic-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 20px; }
+  .topic-btn {
+    padding: 14px 8px; border-radius: 10px; border: 1px solid #e2e8f0;
+    background: #fff; cursor: pointer; font-size: 13px; color: #64748b;
+    transition: all .15s;
+  }
+  .topic-btn .em { font-size: 22px; display: block; margin-bottom: 4px; }
+  .topic-btn.sel { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; font-weight: 700; }
+  #start-btn {
+    padding: 12px 32px; font-size: 15px; font-weight: 700; border-radius: 10px;
+    border: none; background: #3b82f6; color: #fff; cursor: pointer;
+  }
+  #start-btn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+  /* App */
+  #app { display: none; }
+  header {
+    background: #fff; border-bottom: 1px solid #e2e8f0;
+    padding: 10px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .logo { font-size: 20px; }
+  .app-title { font-weight: 800; font-size: 14px; }
+  .bubble-bar-wrap { display: flex; align-items: center; gap: 8px; flex: 1; max-width: 260px; }
+  .bubble-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+  .bubble-fill { height: 100%; width: 0; background: #22c55e; border-radius: 3px; transition: width .4s, background .4s; }
+  .bubble-pct { font-size: 12px; font-weight: 700; min-width: 32px; }
+  .hdr-btns { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .hdr-btn {
+    padding: 5px 12px; border-radius: 7px; border: 1px solid #e2e8f0;
+    background: #f8fafc; color: #64748b; cursor: pointer; font-size: 12px; font-weight: 600;
+  }
+  .hdr-btn.active { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+  .hdr-btn.green.active { background: #dcfce7; border-color: #86efac; color: #16a34a; }
+
+  #status-bar {
+    padding: 7px 20px; font-size: 12px; text-align: center; display: none;
+    border-bottom: 1px solid;
+  }
+
+  .main { max-width: 680px; margin: 0 auto; padding: 16px; display: flex; gap: 16px; align-items: flex-start; }
+
+  /* Algo panel */
+  #algo-panel {
+    width: 200px; min-width: 200px; background: #fff; border-radius: 10px;
+    padding: 14px; border: 1px solid #e2e8f0; display: none;
+  }
+  .panel-title { font-size: 11px; font-weight: 700; color: #64748b; letter-spacing: .05em; margin-bottom: 10px; }
+  .view-row { margin-bottom: 6px; }
+  .view-row-top { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
+  .view-bar-track { height: 3px; background: #f1f5f9; border-radius: 2px; overflow: hidden; }
+  .view-bar-fill { height: 100%; border-radius: 2px; transition: width .3s; }
+  .algo-rules { font-size: 11px; color: #94a3b8; line-height: 1.7; margin-top: 10px; border-top: 1px solid #f1f5f9; padding-top: 10px; }
+
+  /* Feed */
+  #feed-wrap { flex: 1; min-width: 0; }
+  .feed-label { font-size: 12px; color: #94a3b8; margin-bottom: 10px; }
+  .card {
+    border-left: 3px solid #ccc; background: #fff; border-radius: 0 8px 8px 0;
+    padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 3px #0001;
+    transition: opacity .2s;
+  }
+  .card.hidden { opacity: .3; }
+  .card-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .card-src { font-size: 11px; color: #94a3b8; }
+  .card-tag { font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 700; }
+  .card-title { font-size: 14px; font-weight: 600; color: #1e293b; margin-bottom: 8px; line-height: 1.4; }
+  .card-body { font-size: 12px; color: #64748b; margin-bottom: 8px; line-height: 1.6; border-top: 1px solid #f1f5f9; padding-top: 8px; display: none; }
+  .card-btns { display: flex; gap: 6px; }
+  .card-btn {
+    padding: 3px 10px; border-radius: 6px; border: none; cursor: pointer;
+    font-size: 12px; font-weight: 600; background: #f8fafc; color: #64748b;
+  }
+  .card-btn.liked  { background: #dcfce7; color: #16a34a; }
+  .card-btn.disliked { background: #fee2e2; color: #dc2626; }
+
+  #empty { text-align: center; padding: 40px 20px; background: #fff; border-radius: 10px; color: #94a3b8; display: none; }
+  #empty .em2 { font-size: 32px; margin-bottom: 8px; }
+  #reset-empty { padding: 8px 16px; background: #3b82f6; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ══ ПРИВЕТСТВЕННЫЙ ЭКРАН ══ -->
+<div id="welcome">
+  <div class="welcome-box">
+    <div style="font-size:48px">🫧</div>
+    <h1>Симулятор информационного пузыря</h1>
+    <p>Выбери темы → читай новости → ставь лайки.<br>Посмотри, как алгоритм сужает твою ленту.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-bottom:12px">Выбери 2–4 темы</p>
+    <div class="topic-grid" id="topic-grid"></div>
+    <button id="start-btn" disabled onclick="startApp()">Выбери ещё 2</button>
+  </div>
+</div>
+
+<!-- ══ ГЛАВНЫЙ ЭКРАН ══ -->
+<div id="app">
+  <header>
+    <span class="logo">🫧</span>
+    <span class="app-title">Инфопузырь</span>
+    <div class="bubble-bar-wrap">
+      <div class="bubble-track"><div class="bubble-fill" id="bubble-fill"></div></div>
+      <span class="bubble-pct" id="bubble-pct" style="color:#22c55e">0%</span>
+    </div>
+    <div class="hdr-btns">
+      <button class="hdr-btn green" id="btn-break" onclick="toggleBreak()">🫧 Сломать пузырь</button>
+      <button class="hdr-btn" id="btn-algo"  onclick="toggleAlgo()">⚙️ Алгоритм</button>
+      <button class="hdr-btn" onclick="resetAll()">🔄 Сброс</button>
+    </div>
+  </header>
+
+  <div id="status-bar"></div>
+
+  <div class="main">
+    <div id="algo-panel">
+      <div class="panel-title">ВЗГЛЯДЫ В ЛЕНТЕ</div>
+      <div id="view-bars"></div>
+      <div class="algo-rules">
+        <strong style="color:#64748b">Правила:</strong><br>
+        👍 Лайк → +3 взгляду<br>
+        👎 Скрыть → −2 взгляду<br>
+        📈 Пузырь >40% → радикальный контент выше
+      </div>
+    </div>
+    <div id="feed-wrap">
+      <div class="feed-label" id="feed-label">📰 Ваша лента</div>
+      <div id="feed"></div>
+      <div id="empty">
+        <div class="em2">🚫</div>
+        <div>Все статьи скрыты</div>
+        <button id="reset-empty" onclick="resetAll()">Сбросить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ Данные ══════════════════════════════════════
+
+const TOPICS = [
+  { id:"politics", label:"Политика",   emoji:"🏛️" },
+  { id:"tech",     label:"Технологии", emoji:"💻" },
+  { id:"science",  label:"Наука",      emoji:"🔬" },
+  { id:"economy",  label:"Экономика",  emoji:"📊" },
+  { id:"health",   label:"Здоровье",   emoji:"❤️" },
+  { id:"ecology",  label:"Экология",   emoji:"🌿" },
+];
+
+const VIEWS = {
+  left:    { label:"Левый",       color:"#3b82f6" },
+  center:  { label:"Центр",       color:"#64748b" },
+  right:   { label:"Правый",      color:"#f97316" },
+  radical: { label:"Радикальный", color:"#a855f7" },
+  science: { label:"Научный",     color:"#10b981" },
+};
+
+const NEWS = [
+  { id:1,  topic:"politics", view:"left",    rad:false, title:"Неравенство бьёт рекорды: эксперты требуют реформ налогов",       src:"ЛевыйКурс" },
+  { id:2,  topic:"politics", view:"right",   rad:false, title:"Традиционные ценности — основа стабильного общества",             src:"КонсерватТудей" },
+  { id:3,  topic:"politics", view:"center",  rad:false, title:"Политики призвали к диалогу: поляризация достигла максимума",     src:"МедиаЦентр" },
+  { id:4,  topic:"politics", view:"radical", rad:true,  title:"Система сломана. Реформы — обман. Нужна революция",               src:"РадикалМедиа" },
+  { id:5,  topic:"politics", view:"radical", rad:true,  title:"Глобалисты уничтожают суверенитет: факты и документы",            src:"ПравдаПробудись" },
+  { id:6,  topic:"tech",     view:"center",  rad:false, title:"GPT-5 официально запущен: что умеет новая модель",                src:"ТехИнсайдер" },
+  { id:7,  topic:"tech",     view:"left",    rad:false, title:"ИИ уничтожает рабочие места: корпорации ни за что не отвечают",   src:"ТехКритик" },
+  { id:8,  topic:"tech",     view:"right",   rad:false, title:"Технологии создают больше работы, чем ликвидируют — данные",      src:"ИнновацияРу" },
+  { id:9,  topic:"tech",     view:"radical", rad:true,  title:"Чипы в телефонах следят за вами — независимое расследование",     src:"ОткрытаяПравда" },
+  { id:10, topic:"science",  view:"science", rad:false, title:"Учёные открыли новый механизм памяти — прорыв для медицины",      src:"НаукаСегодня" },
+  { id:11, topic:"science",  view:"science", rad:false, title:"Получено первое прямое доказательство тёмной материи",            src:"АстрофизикаRU" },
+  { id:12, topic:"science",  view:"radical", rad:true,  title:"NASA скрывает внеземную жизнь уже 60 лет — документы",            src:"КосмосРаскрыт" },
+  { id:13, topic:"economy",  view:"left",    rad:false, title:"1200 экономистов требуют прогрессивного налога",                  src:"ЭкономПравда" },
+  { id:14, topic:"economy",  view:"right",   rad:false, title:"Свободный рынок снижает бедность: данные за 50 лет",              src:"РынокИПрогресс" },
+  { id:15, topic:"economy",  view:"center",  rad:false, title:"Инфляция замедлилась до 4,2% — что это значит",                  src:"ФинансОбзор" },
+  { id:16, topic:"health",   view:"science", rad:false, title:"8 часов сна — не миф: масштабное исследование подтвердило",       src:"МедВестник" },
+  { id:17, topic:"health",   view:"radical", rad:true,  title:"Фарма скрывает натуральные средства от рака ради прибыли",        src:"НатурЗдоровье" },
+  { id:18, topic:"health",   view:"center",  rad:false, title:"Минздрав обновил рекомендации по питанию и физнагрузке",          src:"ЗдоровыйОбраз" },
+  { id:19, topic:"ecology",  view:"left",    rad:false, title:"Климатический кризис: учёные предупреждают — времени нет",        src:"ЗелёнаяПланета" },
+  { id:20, topic:"ecology",  view:"right",   rad:false, title:"Зелёная повестка убивает промышленность и рабочие места",         src:"ЭкономРост" },
+  { id:21, topic:"ecology",  view:"radical", rad:true,  title:"«Климатический кризис» — инструмент контроля элит",               src:"КлимаСкептик" },
+];
+
+// ══ Состояние ═══════════════════════════════════
+
+let picked    = [];
+let topicW    = {};
+let viewW     = {};
+let liked     = [];
+let disliked  = [];
+let breaking  = false;
+let showAlgo  = false;
+
+// ══ Утилиты ═════════════════════════════════════
+
+function bubbleScore() {
+  if (liked.length < 2) return liked.length * 8;
+  const counts = {};
+  liked.forEach(id => {
+    const a = NEWS.find(n => n.id === id);
+    if (a) counts[a.view] = (counts[a.view] || 0) + 1;
+  });
+  const total = liked.length;
+  let entropy = 0;
+  Object.values(counts).forEach(c => {
+    const p = c / total;
+    entropy -= p * Math.log2(p);
+  });
+  return Math.round((1 - entropy / Math.log2(5)) * 100);
+}
+
+function bubbleColor(score) {
+  if (score < 30) return "#22c55e";
+  if (score < 60) return "#f59e0b";
+  return "#ef4444";
+}
+
+function getFeed() {
+  const score = bubbleScore();
+  return NEWS
+    .filter(a => !disliked.includes(a.id))
+    .map(a => {
+      let s = (topicW[a.topic] || 0) * 2 + (viewW[a.view] || 0) * 3;
+      if (score > 40 && a.rad) s += (score - 40) / 15;
+      return { ...a, _score: breaking ? -s : s };
+    })
+    .sort((a, b) => b._score - a._score);
+}
+
+// ══ Приветственный экран ═════════════════════════
+
+const grid = document.getElementById("topic-grid");
+TOPICS.forEach(t => {
+  const btn = document.createElement("button");
+  btn.className = "topic-btn";
+  btn.innerHTML = `<span class="em">${t.emoji}</span>${t.label}`;
+  btn.dataset.id = t.id;
+  btn.onclick = () => {
+    if (picked.includes(t.id)) {
+      picked = picked.filter(x => x !== t.id);
+      btn.classList.remove("sel");
+    } else if (picked.length < 4) {
+      picked.push(t.id);
+      btn.classList.add("sel");
+    }
+    const startBtn = document.getElementById("start-btn");
+    if (picked.length >= 2) {
+      startBtn.disabled = false;
+      startBtn.textContent = "Начать →";
+    } else {
+      startBtn.disabled = true;
+      startBtn.textContent = `Выбери ещё ${2 - picked.length}`;
+    }
+  };
+  grid.appendChild(btn);
+});
+
+function startApp() {
+  TOPICS.forEach(t => { topicW[t.id] = picked.includes(t.id) ? 5 : 0; });
+  Object.keys(VIEWS).forEach(v => { viewW[v] = 0; });
+  document.getElementById("welcome").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  render();
+}
+
+// ══ Рендер ══════════════════════════════════════
+
+function render() {
+  const score = bubbleScore();
+  const color = bubbleColor(score);
+
+  // Полоска пузыря
+  document.getElementById("bubble-fill").style.width  = score + "%";
+  document.getElementById("bubble-fill").style.background = color;
+  document.getElementById("bubble-pct").textContent   = score + "%";
+  document.getElementById("bubble-pct").style.color   = color;
+
+  // Статус-бар
+  const bar = document.getElementById("status-bar");
+  if (score > 0) {
+    bar.style.display = "block";
+    if (score > 60) {
+      bar.style.background = "#fef2f2"; bar.style.color = "#dc2626"; bar.style.borderColor = "#fecaca";
+      bar.textContent = "⚠️ Сильный пузырь — алгоритм показывает радикальный контент";
+    } else if (score > 30) {
+      bar.style.background = "#fffbeb"; bar.style.color = "#b45309"; bar.style.borderColor = "#fde68a";
+      bar.textContent = "📊 Пузырь формируется — лента становится однобокой";
+    } else {
+      bar.style.background = "#f0fdf4"; bar.style.color = "#16a34a"; bar.style.borderColor = "#bbf7d0";
+      bar.textContent = "✅ Лента ещё разнообразна";
+    }
+  } else {
+    bar.style.display = "none";
+  }
+
+  // Панель алгоритма
+  const algoPanel = document.getElementById("algo-panel");
+  algoPanel.style.display = showAlgo ? "block" : "none";
+  if (showAlgo) {
+    const sorted = Object.entries(viewW).filter(([,v]) => v > 0).sort(([,a],[,b]) => b - a);
+    const maxW = sorted.length ? sorted[0][1] : 1;
+    const container = document.getElementById("view-bars");
+    container.innerHTML = sorted.length === 0
+      ? '<div style="font-size:11px;color:#cbd5e1">Нет лайков</div>'
+      : sorted.map(([v, w]) => {
+          const vd = VIEWS[v];
+          const pct = Math.min(w / maxW * 100, 100);
+          return `
+            <div class="view-row">
+              <div class="view-row-top">
+                <span style="color:${vd.color}">${vd.label}</span>
+                <span style="color:#64748b">+${w.toFixed(0)}</span>
+              </div>
+              <div class="view-bar-track">
+                <div class="view-bar-fill" style="width:${pct}%;background:${vd.color}"></div>
+              </div>
+            </div>`;
+        }).join("");
+  }
+
+  // Лента
+  const feed = getFeed();
+  const feedEl  = document.getElementById("feed");
+  const emptyEl = document.getElementById("empty");
+  const labelEl = document.getElementById("feed-label");
+
+  labelEl.textContent = breaking
+    ? "🧨 Режим ломания пузыря — показываем противоположное"
+    : `📰 Ваша лента · ${feed.length} материалов`;
+
+  if (feed.length === 0) {
+    feedEl.innerHTML = "";
+    emptyEl.style.display = "block";
+    return;
+  }
+  emptyEl.style.display = "none";
+
+  feedEl.innerHTML = feed.map(a => {
+    const v   = VIEWS[a.view];
+    const isLk = liked.includes(a.id);
+    const isDk = disliked.includes(a.id);
+    return `
+      <div class="card${isDk ? " hidden" : ""}" style="border-left-color:${v.color}" id="card-${a.id}">
+        <div class="card-meta">
+          <span class="card-src">${a.src}${a.rad ? " · 🔥" : ""}</span>
+          <span class="card-tag" style="background:${v.color}18;color:${v.color}">${v.label}</span>
+        </div>
+        <div class="card-title">${a.title}</div>
+        <div class="card-body" id="body-${a.id}">
+          Это симулируемая статья с позицией «${v.label}». В реальности алгоритм показывает всё больше
+          похожих материалов, постепенно сужая информационный пузырь.
+        </div>
+        <div class="card-btns">
+          <button class="card-btn${isLk ? " liked" : ""}"    onclick="doLike(${a.id})">👍 Лайк</button>
+          <button class="card-btn${isDk ? " disliked" : ""}" onclick="doDislike(${a.id})">👎 Скрыть</button>
+          <button class="card-btn" onclick="toggleBody(${a.id}, this)">▼ Читать</button>
+        </div>
+      </div>`;
+  }).join("");
+}
+
+// ══ Действия ════════════════════════════════════
+
+function doLike(id) {
+  if (liked.includes(id) || disliked.includes(id)) return;
+  const a = NEWS.find(n => n.id === id);
+  topicW[a.topic] = (topicW[a.topic] || 0) + 2;
+  viewW[a.view]   = (viewW[a.view]   || 0) + 3;
+  liked.push(id);
+  render();
+}
+
+function doDislike(id) {
+  if (liked.includes(id) || disliked.includes(id)) return;
+  const a = NEWS.find(n => n.id === id);
+  topicW[a.topic] = (topicW[a.topic] || 0) - 1;
+  viewW[a.view]   = (viewW[a.view]   || 0) - 2;
+  disliked.push(id);
+  render();
+}
+
+function toggleBody(id, btn) {
+  const body = document.getElementById("body-" + id);
+  const open = body.style.display === "block";
+  body.style.display = open ? "none" : "block";
+  btn.textContent = open ? "▼ Читать" : "▲ Свернуть";
+}
+
+function toggleBreak() {
+  breaking = !breaking;
+  const btn = document.getElementById("btn-break");
+  btn.textContent = breaking ? "🧨 Ломаю пузырь" : "🫧 Сломать пузырь";
+  btn.classList.toggle("active", breaking);
+  render();
+}
+
+function toggleAlgo() {
+  showAlgo = !showAlgo;
+  document.getElementById("btn-algo").classList.toggle("active", showAlgo);
+  render();
+}
+
+function resetAll() {
+  TOPICS.forEach(t => { topicW[t.id] = picked.includes(t.id) ? 5 : 0; });
+  Object.keys(VIEWS).forEach(v => { viewW[v] = 0; });
+  liked = []; disliked = []; breaking = false; showAlgo = false;
+  document.getElementById("btn-break").classList.remove("active");
+  document.getElementById("btn-break").textContent = "🫧 Сломать пузырь";
+  document.getElementById("btn-algo").classList.remove("active");
+  render();
+}
+</script>
+</body>
+</html>
